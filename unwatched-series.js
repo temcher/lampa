@@ -92,6 +92,11 @@
         return progress;
     }
 
+    function episodeCode(episode) {
+        return 'S' + String(episode.season_number).padStart(2, '0') +
+            'E' + String(episode.episode_number).padStart(2, '0');
+    }
+
     function buildModel(cards, episodesByCard, progressFor, now) {
         var recentStart = now - RECENT_DAYS * 86400000;
         var next = [];
@@ -170,6 +175,11 @@
 
     function displayEpisode(item) {
         var card = clone(item.card);
+        var name = card.name || card.title || card.original_name || card.original_title;
+        var label = name + ' — ' + episodeCode(item.episode);
+
+        card.name = label;
+        card.title = label;
         card.unwatched_series = { season: Number(item.episode.season_number), episode: Number(item.episode.episode_number) };
         return card;
     }
