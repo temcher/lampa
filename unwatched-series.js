@@ -69,6 +69,28 @@
             Number(left.episode_number) - Number(right.episode_number);
     }
 
+    function episodeProgress(lampa, card, episode) {
+        var names = [];
+        var progress = 0;
+
+        [card.original_name, card.original_title, card.name, card.title].forEach(function (name) {
+            if (name && names.indexOf(name) === -1) names.push(name);
+        });
+
+        names.forEach(function (name) {
+            var lookupCard = clone(card);
+            var value;
+
+            lookupCard.original_name = name;
+            lookupCard.original_title = name;
+            value = lampa.Timeline.watchedEpisode(lookupCard, episode.season_number, episode.episode_number);
+            value = value === true ? 100 : (Number(value) || 0);
+            progress = Math.max(progress, value);
+        });
+
+        return progress;
+    }
+
     function episodeCode(episode) {
         return 'S' + String(episode.season_number).padStart(2, '0') +
             'E' + String(episode.episode_number).padStart(2, '0');
@@ -141,7 +163,7 @@
         cards = trackedCards(lampa.Favorite);
         return loadEpisodes(lampa.TimeTable, cards).then(function (episodesByCard) {
             return buildModel(cards, episodesByCard, function (card, episode) {
-                return lampa.Timeline.watchedEpisode(card, episode.season_number, episode.episode_number);
+                return episodeProgress(lampa, card, episode);
             }, Date.now());
         });
     }
@@ -318,6 +340,7 @@
         TRACKED_TYPES: TRACKED_TYPES.slice(),
         FINISHED_TYPES: FINISHED_TYPES.slice(),
         trackedCards: trackedCards,
+        episodeProgress: episodeProgress,
         buildModel: buildModel,
         displayEpisode: displayEpisode,
         libraryRows: libraryRows,
