@@ -9,7 +9,7 @@
     var PLUGIN_ID = 'unwatched-series';
     var COMPLETION_PERCENT = 90;
     var RECENT_DAYS = 14;
-    var TRACKED_TYPES = ['like', 'continued', 'look'];
+    var TRACKED_TYPES = ['book', 'like', 'continued', 'look'];
     var initialized = false;
 
     function isSeries(card) {
