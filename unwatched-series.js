@@ -11,6 +11,7 @@
     var RECENT_DAYS = 14;
     // The CUB book type is Избранное; like is only Нравится.
     var TRACKED_TYPES = ['book', 'like', 'continued', 'look'];
+    var FINISHED_TYPES = ['viewed', 'thrown'];
     var initialized = false;
 
     function isSeries(card) {
@@ -29,12 +30,19 @@
 
     function trackedCards(favorite) {
         var seen = {};
+        var finished = {};
         var cards = [];
+
+        FINISHED_TYPES.forEach(function (type) {
+            (favorite.get({ type: type }) || []).forEach(function (card) {
+                if (card && card.id !== undefined) finished[String(card.id)] = true;
+            });
+        });
 
         TRACKED_TYPES.forEach(function (type) {
             (favorite.get({ type: type }) || []).forEach(function (card) {
                 var key;
-                if (!isSeries(card)) return;
+                if (!isSeries(card) || finished[String(card.id)]) return;
                 key = cardKey(card);
                 if (!seen[key]) {
                     seen[key] = true;
@@ -308,6 +316,7 @@
         COMPLETION_PERCENT: COMPLETION_PERCENT,
         RECENT_DAYS: RECENT_DAYS,
         TRACKED_TYPES: TRACKED_TYPES.slice(),
+        FINISHED_TYPES: FINISHED_TYPES.slice(),
         trackedCards: trackedCards,
         buildModel: buildModel,
         displayEpisode: displayEpisode,
