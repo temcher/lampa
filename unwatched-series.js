@@ -84,16 +84,12 @@
             lookupCard.original_name = name;
             lookupCard.original_title = name;
             value = lampa.Timeline.watchedEpisode(lookupCard, episode.season_number, episode.episode_number);
+            if (value && typeof value === 'object') value = value.percent;
             value = value === true ? 100 : (Number(value) || 0);
             progress = Math.max(progress, value);
         });
 
         return progress;
-    }
-
-    function episodeCode(episode) {
-        return 'S' + String(episode.season_number).padStart(2, '0') +
-            'E' + String(episode.episode_number).padStart(2, '0');
     }
 
     function buildModel(cards, episodesByCard, progressFor, now) {
@@ -174,8 +170,6 @@
 
     function displayEpisode(item) {
         var card = clone(item.card);
-        var name = card.name || card.title || card.original_name || card.original_title;
-        card.name = name + ' — ' + episodeCode(item.episode);
         card.unwatched_series = { season: Number(item.episode.season_number), episode: Number(item.episode.episode_number) };
         return card;
     }
