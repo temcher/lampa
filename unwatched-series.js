@@ -160,7 +160,43 @@
 
     function libraryComponent(lampa) {
         return function (object) {
-            var component = new lampa.Interaction.Main(object);
+            var component;
+
+            if (lampa.Maker && lampa.Maker.make) {
+                component = lampa.Maker.make('Main', object);
+                component.use({
+                    onCreate: function () {
+                        var page = this;
+                        modelForLampa(lampa).then(function (model) {
+                            page.build(libraryRows(lampa, model));
+                        }).catch(function () {
+                            page.build([]);
+                        });
+                    },
+                    onInstance: function (line) {
+                        line.use({
+                            onInstance: function (card, data) {
+                                card.use({
+                                    onlyEnter: function () {
+                                        lampa.Activity.push({
+                                            url: data.url,
+                                            component: 'full',
+                                            id: data.id,
+                                            method: data.name ? 'tv' : 'movie',
+                                            card: data,
+                                            source: data.source || 'tmdb'
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+
+                return component;
+            }
+
+            component = new lampa.Interaction.Main(object);
 
             component.create = function () {
                 modelForLampa(lampa).then(function (model) {
@@ -175,7 +211,8 @@
     }
 
     function canOpenLibraryPage(lampa) {
-        return Boolean(lampa.Component && lampa.Interaction && lampa.Interaction.Main);
+        return Boolean(lampa.Component && ((lampa.Maker && lampa.Maker.make) ||
+            (lampa.Interaction && lampa.Interaction.Main)));
     }
 
     function openFallback(lampa) {
