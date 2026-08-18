@@ -9,6 +9,7 @@
     var PLUGIN_ID = 'unwatched-series';
     var COMPLETION_PERCENT = 90;
     var RECENT_DAYS = 14;
+    // The CUB book type is Избранное; like is only Нравится.
     var TRACKED_TYPES = ['book', 'like', 'continued', 'look'];
     var initialized = false;
 
@@ -69,6 +70,7 @@
         var recentStart = now - RECENT_DAYS * 86400000;
         var next = [];
         var recent = [];
+        var tracked = [];
 
         cards.forEach(function (card) {
             var first;
@@ -85,7 +87,10 @@
                 if (item.airTime >= recentStart) recent.push(item);
             });
 
-            if (first) next.push(first);
+            if (first) {
+                next.push(first);
+                tracked.push(card);
+            }
         });
 
         next.sort(function (left, right) {
@@ -96,7 +101,7 @@
         });
         recent.sort(function (left, right) { return right.airTime - left.airTime || compareEpisodes(left.episode, right.episode); });
 
-        return { next: next, recent: recent, tracked: cards.slice() };
+        return { next: next, recent: recent, tracked: tracked };
     }
 
     function loadEpisodes(timeTable, cards) {
