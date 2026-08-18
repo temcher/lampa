@@ -181,12 +181,12 @@
         return true;
     }
 
-    function init(lampa) {
-        if (!lampa) return false;
-        if (register(lampa)) return true;
-        if (lampa.Listener && lampa.Listener.follow) {
-            lampa.Listener.follow('app', function (event) {
-                if (event.type === 'ready') register(lampa);
+    function init(Lampa) {
+        if (!Lampa) return false;
+        if (register(Lampa)) return true;
+        if (Lampa.Listener && Lampa.Listener.follow) {
+            Lampa.Listener.follow('app', function (event) {
+                if (event.type === 'ready') register(Lampa);
             });
         }
         return false;
