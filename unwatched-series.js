@@ -174,7 +174,51 @@
         };
     }
 
+    function canOpenLibraryPage(lampa) {
+        return Boolean(lampa.Component && lampa.Interaction && lampa.Interaction.Main);
+    }
+
+    function openFallback(lampa) {
+        modelForLampa(lampa).then(function (model) {
+            var items = [];
+
+            libraryRows(lampa, model).forEach(function (row) {
+                row.results.forEach(function (card) {
+                    items.push({
+                        title: row.title + ' — ' + (card.name || card.title || card.original_name),
+                        card: card
+                    });
+                });
+            });
+
+            if (!items.length) {
+                if (lampa.Noty && lampa.Noty.show) lampa.Noty.show('Нет непросмотренных серий');
+                return;
+            }
+
+            lampa.Select.show({
+                title: title(lampa, 'unwatched_series_title', 'Unwatched series'),
+                items: items,
+                onSelect: function (item) {
+                    var card = item.card;
+                    lampa.Activity.push({
+                        url: card.url,
+                        component: 'full',
+                        id: card.id,
+                        method: card.name ? 'tv' : 'movie',
+                        card: card,
+                        source: card.source || 'tmdb'
+                    });
+                }
+            });
+        });
+    }
+
     function openLibrary(lampa) {
+        if (!canOpenLibraryPage(lampa)) {
+            openFallback(lampa);
+            return;
+        }
         lampa.Activity.push({
             url: PLUGIN_ID,
             component: PLUGIN_ID,
@@ -185,25 +229,30 @@
     }
 
     function register(lampa) {
-        if (initialized || !lampa || !lampa.Menu || !lampa.Component || !lampa.Activity ||
-            !lampa.Interaction || !lampa.Interaction.Main) return false;
-        initialized = true;
+        if (initialized || !lampa || !lampa.Menu || !lampa.Activity) return false;
 
-        if (lampa.Lang && lampa.Lang.add) {
-            lampa.Lang.add({
-                unwatched_series_next: { ru: 'Следующие серии', en: 'Next episodes' },
-                unwatched_series_recent: { ru: 'Вышли недавно', en: 'Recently released' },
-                unwatched_series_tracking: { ru: 'Смотрю', en: 'Watching' },
-                unwatched_series_title: { ru: 'Непросмотренные серии', en: 'Unwatched series' }
-            });
+        try {
+            if (lampa.Lang && lampa.Lang.add) {
+                lampa.Lang.add({
+                    unwatched_series_next: { ru: 'Следующие серии', en: 'Next episodes' },
+                    unwatched_series_recent: { ru: 'Вышли недавно', en: 'Recently released' },
+                    unwatched_series_tracking: { ru: 'Смотрю', en: 'Watching' },
+                    unwatched_series_title: { ru: 'Непросмотренные серии', en: 'Unwatched series' }
+                });
+            }
+
+            if (canOpenLibraryPage(lampa)) lampa.Component.add(PLUGIN_ID, libraryComponent(lampa));
+            lampa.Menu.addButton(
+                '<svg><use xlink:href="#sprite-calendar"></use></svg>',
+                title(lampa, 'unwatched_series_title', 'Unwatched series'),
+                function () { openLibrary(lampa); }
+            );
+        }
+        catch (error) {
+            return false;
         }
 
-        lampa.Component.add(PLUGIN_ID, libraryComponent(lampa));
-        lampa.Menu.addButton(
-            '<svg><use xlink:href="#sprite-calendar"></use></svg>',
-            title(lampa, 'unwatched_series_title', 'Unwatched series'),
-            function () { openLibrary(lampa); }
-        );
+        initialized = true;
         return true;
     }
 
