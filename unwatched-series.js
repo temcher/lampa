@@ -150,39 +150,60 @@
         return card;
     }
 
-    function addRow(lampa, name, labelKey, fallback, select, render) {
-        lampa.ContentRows.add({
-            name: PLUGIN_ID + '-' + name,
-            title: title(lampa, labelKey, fallback),
-            index: 0,
-            screen: ['main'],
-            call: function () {
-                return function (done) {
-                    modelForLampa(lampa).then(function (model) {
-                        done({ title: title(lampa, labelKey, fallback), results: select(model).map(render) });
-                    }).catch(function () {
-                        done({ title: title(lampa, labelKey, fallback), results: [] });
-                    });
-                };
-            }
+    function libraryRows(lampa, model) {
+        return [
+            { title: title(lampa, 'unwatched_series_next', 'Next episodes'), results: model.next.map(displayEpisode), nomore: true },
+            { title: title(lampa, 'unwatched_series_recent', 'Recently released'), results: model.recent.map(displayEpisode), nomore: true },
+            { title: title(lampa, 'unwatched_series_tracking', 'Watching'), results: model.tracked.map(clone), nomore: true }
+        ].filter(function (row) { return row.results.length; });
+    }
+
+    function libraryComponent(lampa) {
+        return function (object) {
+            var component = new lampa.Interaction.Main(object);
+
+            component.create = function () {
+                modelForLampa(lampa).then(function (model) {
+                    component.build(libraryRows(lampa, model));
+                }).catch(function () {
+                    component.build([]);
+                });
+            };
+
+            return component;
+        };
+    }
+
+    function openLibrary(lampa) {
+        lampa.Activity.push({
+            url: PLUGIN_ID,
+            component: PLUGIN_ID,
+            title: title(lampa, 'unwatched_series_title', 'Unwatched series'),
+            page: 1,
+            source: 'cub'
         });
     }
 
     function register(lampa) {
-        if (initialized || !lampa || !lampa.ContentRows) return false;
+        if (initialized || !lampa || !lampa.Menu || !lampa.Component || !lampa.Activity ||
+            !lampa.Interaction || !lampa.Interaction.Main) return false;
         initialized = true;
 
         if (lampa.Lang && lampa.Lang.add) {
             lampa.Lang.add({
                 unwatched_series_next: { ru: 'Следующие серии', en: 'Next episodes' },
                 unwatched_series_recent: { ru: 'Вышли недавно', en: 'Recently released' },
-                unwatched_series_tracking: { ru: 'Смотрю', en: 'Watching' }
+                unwatched_series_tracking: { ru: 'Смотрю', en: 'Watching' },
+                unwatched_series_title: { ru: 'Непросмотренные серии', en: 'Unwatched series' }
             });
         }
 
-        addRow(lampa, 'next', 'unwatched_series_next', 'Next episodes', function (model) { return model.next; }, displayEpisode);
-        addRow(lampa, 'recent', 'unwatched_series_recent', 'Recently released', function (model) { return model.recent; }, displayEpisode);
-        addRow(lampa, 'tracking', 'unwatched_series_tracking', 'Watching', function (model) { return model.tracked; }, clone);
+        lampa.Component.add(PLUGIN_ID, libraryComponent(lampa));
+        lampa.Menu.addButton(
+            '<svg><use xlink:href="#sprite-calendar"></use></svg>',
+            title(lampa, 'unwatched_series_title', 'Unwatched series'),
+            function () { openLibrary(lampa); }
+        );
         return true;
     }
 
@@ -204,6 +225,7 @@
         trackedCards: trackedCards,
         buildModel: buildModel,
         displayEpisode: displayEpisode,
+        libraryRows: libraryRows,
         init: init
     };
 });
