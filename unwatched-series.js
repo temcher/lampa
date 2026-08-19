@@ -12,6 +12,8 @@
     // The CUB book type is Избранное; like is only Нравится.
     var TRACKED_TYPES = ['book', 'like', 'continued', 'look'];
     var FINISHED_TYPES = ['viewed', 'thrown'];
+    var ALTERNATIVE_TITLES_CACHE_KEY = PLUGIN_ID + '-alternative-titles';
+    var ALTERNATIVE_TITLES_CACHE_DAYS = 90;
     var TITLE_ALIASES = {
         'Dutton Ranch': ['The Dutton Ranch'],
         'The Dutton Ranch': ['Dutton Ranch']
@@ -73,11 +75,11 @@
             Number(left.episode_number) - Number(right.episode_number);
     }
 
-    function episodeProgress(lampa, card, episode) {
+    function episodeProgress(lampa, card, episode, alternativeTitles) {
         var names = [];
         var progress = 0;
 
-        [card.original_name, card.original_title, card.name, card.title].forEach(function (name) {
+        [card.original_name, card.original_title, card.name, card.title].concat(alternativeTitles || []).forEach(function (name) {
             var aliases;
             if (name && names.indexOf(name) === -1) names.push(name);
             aliases = TITLE_ALIASES[name] || [];
@@ -99,6 +101,49 @@
         });
 
         return progress;
+    }
+
+    function alternativeTitles(lampa, cards) {
+        var cache = lampa.Storage && lampa.Storage.get ? lampa.Storage.get(ALTERNATIVE_TITLES_CACHE_KEY, {}) : {};
+        var now = Date.now();
+        var maxAge = ALTERNATIVE_TITLES_CACHE_DAYS * 86400000;
+        var titlesByCard = {};
+
+        if (!lampa.Api || !lampa.Api.sources || !lampa.Api.sources.tmdb || !lampa.Api.sources.tmdb.get) {
+            return Promise.resolve(titlesByCard);
+        }
+
+        return Promise.all(cards.map(function (card) {
+            var key = cardKey(card);
+            var saved = cache[key];
+
+            if (saved && Array.isArray(saved.titles) && saved.updated && now - saved.updated < maxAge) {
+                titlesByCard[key] = saved.titles;
+                return Promise.resolve();
+            }
+
+            return new Promise(function (resolve) {
+                try {
+                    lampa.Api.sources.tmdb.get('tv/' + card.id + '/alternative_titles', {}, function (data) {
+                        var titles = ((data && data.results) || []).map(function (item) { return item.title; })
+                            .filter(function (name) { return typeof name === 'string' && name.length; });
+                        titlesByCard[key] = titles;
+                        cache[key] = { titles: titles, updated: now };
+                        resolve();
+                    }, function () {
+                        titlesByCard[key] = [];
+                        resolve();
+                    }, { life: ALTERNATIVE_TITLES_CACHE_DAYS * 1440 });
+                }
+                catch (error) {
+                    titlesByCard[key] = [];
+                    resolve();
+                }
+            });
+        })).then(function () {
+            if (lampa.Storage && lampa.Storage.set) lampa.Storage.set(ALTERNATIVE_TITLES_CACHE_KEY, cache);
+            return titlesByCard;
+        });
     }
 
     function episodeCode(episode) {
@@ -172,9 +217,11 @@
         if (!canUseCub(lampa)) return Promise.resolve({ next: [], recent: [], tracked: [] });
         cards = trackedCards(lampa.Favorite);
         return loadEpisodes(lampa.TimeTable, cards).then(function (episodesByCard) {
-            return buildModel(cards, episodesByCard, function (card, episode) {
-                return episodeProgress(lampa, card, episode);
-            }, Date.now());
+            return alternativeTitles(lampa, cards).then(function (titlesByCard) {
+                return buildModel(cards, episodesByCard, function (card, episode) {
+                    return episodeProgress(lampa, card, episode, titlesByCard[cardKey(card)]);
+                }, Date.now());
+            });
         });
     }
 
@@ -355,6 +402,7 @@
         TITLE_ALIASES: TITLE_ALIASES,
         trackedCards: trackedCards,
         episodeProgress: episodeProgress,
+        alternativeTitles: alternativeTitles,
         buildModel: buildModel,
         displayEpisode: displayEpisode,
         libraryRows: libraryRows,
