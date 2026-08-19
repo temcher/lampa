@@ -7,6 +7,9 @@
     'use strict';
 
     var PLUGIN_ID = 'unwatched-series';
+    var PLUGIN_TITLE = 'Непросмотренные серии';
+    var PLUGIN_VERSION = '2026-08-19 #1';
+    var PLUGIN_DISPLAY_NAME = PLUGIN_TITLE + ' — ' + PLUGIN_VERSION;
     var COMPLETION_PERCENT = 90;
     var RECENT_DAYS = 14;
     // The CUB book type is Избранное; like is only Нравится.
@@ -362,8 +365,8 @@
 
         lampa.Plugins.get().forEach(function (plugin) {
             if (plugin && plugin.url && plugin.url.indexOf('unwatched-series.js') !== -1 &&
-                (!plugin.name || plugin.name === 'Без названия')) {
-                plugin.name = 'Непросмотренные серии';
+                plugin.name !== PLUGIN_DISPLAY_NAME) {
+                plugin.name = PLUGIN_DISPLAY_NAME;
                 changed = true;
             }
         });
@@ -417,6 +420,8 @@
         TRACKED_TYPES: TRACKED_TYPES.slice(),
         FINISHED_TYPES: FINISHED_TYPES.slice(),
         TITLE_ALIASES: TITLE_ALIASES,
+        PLUGIN_VERSION: PLUGIN_VERSION,
+        PLUGIN_DISPLAY_NAME: PLUGIN_DISPLAY_NAME,
         trackedCards: trackedCards,
         episodeProgress: episodeProgress,
         alternativeTitles: alternativeTitles,
