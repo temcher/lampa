@@ -12,6 +12,10 @@
     // The CUB book type is Избранное; like is only Нравится.
     var TRACKED_TYPES = ['book', 'like', 'continued', 'look'];
     var FINISHED_TYPES = ['viewed', 'thrown'];
+    var TITLE_ALIASES = {
+        'Dutton Ranch': ['The Dutton Ranch'],
+        'The Dutton Ranch': ['Dutton Ranch']
+    };
     var initialized = false;
 
     function isSeries(card) {
@@ -74,7 +78,12 @@
         var progress = 0;
 
         [card.original_name, card.original_title, card.name, card.title].forEach(function (name) {
+            var aliases;
             if (name && names.indexOf(name) === -1) names.push(name);
+            aliases = TITLE_ALIASES[name] || [];
+            aliases.forEach(function (alias) {
+                if (names.indexOf(alias) === -1) names.push(alias);
+            });
         });
 
         names.forEach(function (name) {
@@ -343,6 +352,7 @@
         RECENT_DAYS: RECENT_DAYS,
         TRACKED_TYPES: TRACKED_TYPES.slice(),
         FINISHED_TYPES: FINISHED_TYPES.slice(),
+        TITLE_ALIASES: TITLE_ALIASES,
         trackedCards: trackedCards,
         episodeProgress: episodeProgress,
         buildModel: buildModel,
