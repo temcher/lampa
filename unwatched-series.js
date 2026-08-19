@@ -355,6 +355,22 @@
         });
     }
 
+    function setPluginName(lampa) {
+        var changed = false;
+
+        if (!lampa.Plugins || !lampa.Plugins.get || !lampa.Plugins.save) return;
+
+        lampa.Plugins.get().forEach(function (plugin) {
+            if (plugin && plugin.url && plugin.url.indexOf('unwatched-series.js') !== -1 &&
+                (!plugin.name || plugin.name === 'Без названия')) {
+                plugin.name = 'Непросмотренные серии';
+                changed = true;
+            }
+        });
+
+        if (changed) lampa.Plugins.save();
+    }
+
     function register(lampa) {
         if (initialized || !lampa || !lampa.Menu || !lampa.Activity) return false;
 
@@ -374,6 +390,7 @@
                 title(lampa, 'unwatched_series_title', 'Unwatched series'),
                 function () { openLibrary(lampa); }
             );
+            setPluginName(lampa);
         }
         catch (error) {
             return false;
@@ -403,6 +420,7 @@
         trackedCards: trackedCards,
         episodeProgress: episodeProgress,
         alternativeTitles: alternativeTitles,
+        setPluginName: setPluginName,
         buildModel: buildModel,
         displayEpisode: displayEpisode,
         libraryRows: libraryRows,
